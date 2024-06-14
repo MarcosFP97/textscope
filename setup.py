@@ -5,7 +5,10 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        # Lista de dependencias
+        "torch",
+        "transformers",
+        "numpy",
+        "pytest"
     ],
     include_package_data=True,
     description="A text analysis library for relevance and subtheme detection",
