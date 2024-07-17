@@ -57,4 +57,8 @@ class RelevanceAnalyzer:
         scores = (embeddings[:1] @ embeddings[1:].T) * 100
         return scores.tolist()[0][0]
     
+    def filter_corpus(
+        self    
+    ):
+       pass ## TO-DO 
    

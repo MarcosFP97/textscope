@@ -2,3 +2,5 @@ torch
 transformers
 numpy
 pytest
+sentence-transformers
+nltk
