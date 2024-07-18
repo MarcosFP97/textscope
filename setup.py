@@ -8,7 +8,9 @@ setup(
         "torch",
         "transformers",
         "numpy",
-        "pytest"
+        "pytest",
+        "sentence-transformers",
+        "nltk"
     ],
     include_package_data=True,
     description="A text analysis library for relevance and subtheme detection",
