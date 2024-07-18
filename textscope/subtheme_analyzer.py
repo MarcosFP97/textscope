@@ -1,14 +1,14 @@
 from sentence_transformers import SentenceTransformer
 import torch
 from nltk.tokenize import sent_tokenize
-from .config import GAMBLING_SUBTHEMES
+from .config import SUBTHEMES
 
 class SubthemeAnalyzer:
     def __init__(
             self, 
             sbert_model:str
     )-> None:
-        self.subthemes = GAMBLING_SUBTHEMES
+        self.subthemes = SUBTHEMES
         self.model = SentenceTransformer(sbert_model)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
@@ -17,6 +17,9 @@ class SubthemeAnalyzer:
             self, 
             text:str
     )-> dict:
+        if not text:
+            return {}
+        
         sentences = sent_tokenize(text)
         subtheme_scores = {}
 
@@ -27,6 +30,7 @@ class SubthemeAnalyzer:
             for sent in sentences:
                 s = self.model.encode(sent)
                 sim = self.model.similarity(query,s)
+                sim = sim.item()
 
                 if sim > max_sim:
                     max_sim = sim
@@ -38,8 +42,11 @@ class SubthemeAnalyzer:
     def analyze_bin(
             self, 
             text:str,
-            thr:float=0.8
+            thr:float=0.3
     )-> dict:
+        if not text:
+            return {}
+        
         sentences = sent_tokenize(text)
         subtheme_pres = {}
 
@@ -50,6 +57,7 @@ class SubthemeAnalyzer:
             for sent in sentences:
                 s = self.model.encode(sent)
                 sim = self.model.similarity(query,s)
+                sim = sim.item()
 
                 if sim > max_sim:
                     max_sim = sim

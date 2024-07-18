@@ -3,19 +3,20 @@ from torch import Tensor
 from transformers import AutoTokenizer, AutoModel
 import torch
 import numpy as np
-from .config import GAMBLING_THEMES
+from .config import THEMES
 
 class RelevanceAnalyzer:
     def __init__(
             self, 
-            model_name: str
+            model_name: str,
+            task: str = 'Given a query, determine whether the text is relevant for the query'
     )-> None:
-        self.themes = GAMBLING_THEMES
+        self.themes = THEMES
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.task = 'Given a query, determine whether the text is relevant for the query'
+        self.task = task
     
     def __get_detailed_instruct(
         self,
@@ -39,15 +40,19 @@ class RelevanceAnalyzer:
         if not text:
             return 0.
         
-        # Lógica para analizar la relevancia del texto con respecto a una serie de queries que modelan la temática
         concat_q = ' '.join(self.themes)
-        instruct = [
-            self.__get_detailed_instruct(self.task, concat_q),
-        ]
-        doc = [
-            text
-        ]
-        input = instruct + doc
+
+        if self.task:
+            instruct = [
+                self.__get_detailed_instruct(self.task, concat_q),
+            ]
+            doc = [
+                text
+            ]
+            input = instruct + doc
+        else:
+            input = f'Query: {concat_q} Passage: {doc}'
+
         batch_dict = self.tokenizer(input, max_length=512, padding=True, truncation=True, return_tensors='pt')
         batch_dict = {k: v.to(self.device) for k, v in batch_dict.items()}
         outputs = self.model(**batch_dict)

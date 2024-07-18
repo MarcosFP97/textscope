@@ -11,10 +11,10 @@ def analyzer():
 def test_analyze_relevance(analyzer):
     score = analyzer.analyze(sample_text)
     print(f"Relevance score for sample text: {score}")
-    assert isinstance(score, float), "El resultado debería ser un float"
-    assert 0 <= score <= 100, "El score debería estar entre 0 y 100"
+    assert isinstance(score, float), "The result should be a float"
+    assert 0 <= score <= 100, "The result should be between 0 and 100"
 
 def test_empty_text(analyzer):
     score = analyzer.analyze("")
-    assert isinstance(score, float), "El resultado debería ser un float"
-    assert score == 0, "El score debería ser 0 para un texto vacío"
+    assert isinstance(score, float), "The result should be a float"
+    assert score == 0, "The result should be 0 for an empty text"
