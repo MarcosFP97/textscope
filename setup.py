@@ -13,7 +13,7 @@ setup(
         "nltk"
     ],
     include_package_data=True,
-    description="A text analysis library for relevance and subtheme detection",
+    description="A Python text analysis library for relevance and subtheme detection",
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author="Marcos Fernández-Pichel",
