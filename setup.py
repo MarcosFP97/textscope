@@ -2,14 +2,17 @@ from setuptools import setup, find_packages
 
 setup(
     name="textscope",
-    version="0.1.0",
+    version="0.1.5",
     packages=find_packages(),
+    package_data={
+        'textscope': ['data/config.yaml'],
+    },
     install_requires=[
         "torch",
         "transformers",
         "numpy",
         "pytest",
-        "sentence-transformers",
+        "pyyaml",
         "nltk"
     ],
     include_package_data=True,
