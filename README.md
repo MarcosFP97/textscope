@@ -1,12 +1,16 @@
-# TextScope :books::mag:
+# TextScope 📖🔍
 
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/textscope)
 
-*TextScope* is a Python package that helps determine the relevance of a text to predefined profiles of interest and aligns it with specific subthemes. The package is designed to be flexible and configurable via a `config.py` file.
+*TextScope* is a Python package that helps determine the relevance of a text to predefined profiles of interest and aligns it with specific subthemes. The package is designed to be flexible and configurable via a `config.yaml` file. Features:
+
+- Multilingual support 🗣️
+- Powered by Transformers techonology 🤖
+- Easily customizable for other profiles of interest ⚙️🔧
 
 ## Installation
 
-You can install *TextScope* using pip:
+You can install *TextScope* using pip (🐍):
 
 ```bash
 pip install textscope
@@ -14,60 +18,111 @@ pip install textscope
 
 ## Configuration
 
-Before using *TextScope*, define your profiles of interest and subthemes in the config.py file. Example:
+### Default Configuration 
+By default, *TextScope* looks for a configuration file included in the package. You can create your own configuration file if you need to customize the profiles and subthemes. The default *config.yaml* included with the package provides the following profiles:
+
+- **gambling** 🎲 in Spanish. Subthemes are DSM-V questionnaire items.
+- **mental_health** 🧠 in English. Subthemes are BDI-II questionnaire items.
+- **climat** 🌦️ in French. Subthemes related to climate change phenomena.
+
+You can find more info in the `textscope/data/config.yaml` file.
+
+### Custom Configuration
+
+If you want to use a custom configuration file, you can specify the file path in your code:
 
 ```python
-THEMES = ['technology', 'AI', 'machine learning', 'software']
+from textscope.config_loader import load_config
 
-SUBTHEMES = {
-    '1': 'Natural Language Processing',
-    '2': 'Transfomer-based architecture'
-    '3': 'Computer Vision and multimodality'
-}
-``` 
+# Load custom configuration
+load_config('path/to/custom_config.yaml')
+```
+Example of custom `config.yaml`:
 
-In this `config` example, we defined a series of themes or keyphrases related to AI. They can be used in combination with the relevance filter to keep only highly on-topic documents. We also defined a series of subthemes to determine whether the analyzed text discuss the subtheme or not.
+```yaml
+PROFILES:
+    ai: ['technology', 'AI', 'machine learning', 'software']
+
+SUBTHEMES:
+    ai: ['Natural Language Processing', 'Transfomer-based architecture', 'Computer Vision and multimodality']
+```
 
 ## Relevance Analysis
 
-To determine if a text is relevant to any of the predefined *themes* or *profiles*:
+To determine if a text is relevant to any of the predefined *profiles*. One possible application  of this method would be to filter out texts that are not highly relevant to the topic. Future versions of the *TextScope* will include a *filter_corpus* method that will remove the out-of-scope texts from a corpus (currently *under development*). 
+
+### Default Configuration
 
 ```python
 from textscope.relevance_analyzer import RelevanceAnalyzer
 
-model_name = 'intfloat/multilingual-e5-large-instruct'
-text = "This article discusses the latest advancements in AI and machine learning."
-analyzer = RelevanceAnalyzer(model_name)
-rel_score = analyzer.analyze(text)
-print(rel_score)  ## it will return a high score of relevance for the themes (> 86.)
-``` 
-One possible application  of this method would be to filter out texts that are not highly relevant to the topic. Future versions of the *TextScope* will include a *filter_corpus* method that will remove the out-of-scope texts from a corpus (currently *under development*). 
-**NOTE**: *TextScope* is agnostic to the embedding model underneath, but we highly recommend to use [e5](https://huggingface.co/intfloat/multilingual-e5-large-instruct) multilingual instruct version.It is highly flexible and accepts instructions in natural language.
+text = "La adicción al juego es una enfermedad, pero es la única enfermedad que te puede hacer rico. La artritis no te va a hacer ganar un centavo"
+profile = 'gambling'
 
-The **default** config file provided with *TextScope* defines a profile of interest in <ins>Spanish</ins> related to <ins>pathological gambling</ins> and a list of subthemes representing symptoms of the pathology. It is an example of the **multilingual** support of this package and its application to **complex real scenarios**.
+analyzer = RelevanceAnalyzer()
+rel_score = analyzer.analyze(text, profile)
+print(rel_score)  ## it will return a high score of relevance for the profile (> 86.)
+```
+
+### Custom Configuration
+
+```python
+from textscope.config_loader import load_config
+from textscope.relevance_analyzer import RelevanceAnalyzer
+
+load_config('path/to/custom_config.yaml')
+
+# Realizar un análisis de relevancia
+text = "Transformers based architecture is the sota in NLP."
+profile = 'ai'
+
+relevance_analyzer = RelevanceAnalyzer()
+is_relevant = relevance_analyzer.analyze(text, profile)
+print(rel_score)  ## it will return a high score of relevance for the profile (> 86.)
+```
 
 ## Subtheme Analysis
 
-This class allows to test whether a text discuss or not the subthemes defined in the `config`:
+This class allows to test whether a text discuss or not the subthemes defined in the profile.
+
+### Default Configuration
 
 ```python
 from textscope.subtheme_analyzer import SubthemeAnalyzer
 
-model_name =  intfloat/multilingual-e5-large-instruct'
+text = 'Perdía el raciocinio apostando cantidades cada vez mayores para sentir estímulos más intensos. He mentido a mi familia.'
+profile = 'gambling'
+
+analyzer = SubthemeAnalyzer()
+subth_pres = analyzer.analyze_bin(text, profile) # default threshold set to 86.
+print(subth_pres)  # For this sentence and subthemes it should output [0, 1, 0, 0, 0, 1, 0, 0, 0]
+```
+
+### Custom Configuration
+
+```python
+from textscope.config_loader import load_config
+from textscope.subtheme_analyzer import SubthemeAnalyzer
+
+load_config('path/to/custom_config.yaml')
 text = "Transformer-based architecture is the state-of-the-art in NLP."
-analyzer = SubthemeAnalyzer(model_name)
-subth_pres = analyzer.analyze_bin(text) # default threshold set to 86.
-print(subth_pres)  # For this sentence and subthemes it should output {'1':1, '2':1, '3':0}
+profile = 'ai'
+
+analyzer = SubthemeAnalyzer()
+subth_pres = analyzer.analyze_bin(text, profile) # default threshold set to 86.
+print(subth_pres)  # For this sentence and subthemes it should output [1,1,0]
 ```
 If we do not want a binary output, we also provide a method that outputs the similarity:
+
 ```python
 from textscope.subtheme_analyzer import SubthemeAnalyzer
 
-model_name =  intfloat/multilingual-e5-large-instruct'
-text = "Transformer-based architecture is the state-of-the-art in NLP."
-analyzer = SubthemeAnalyzer(model_name)
-subth_prob = analyzer.analyze(text) # default threshold set to 86.
-print(subth_prob)  # For this sentence and subthemes it should output {'1':1, '2':1, '3':0}
+text = 'Perdía el raciocinio apostando cantidades cada vez mayores para sentir estímulos más intensos. He mentido a mi familia.'
+profile = 'gambling'
+
+analyzer = SubthemeAnalyzer()
+subth_scoring = analyzer.analyze(text, profile) # default threshold set to 86.
+print(subth_scoring)  # For this sentence and subthemes it should output [82.50125885009766, 87.5889663696289, 82.89108276367188, 81.27981567382812, 84.01229095458984, 86.728271484375, 82.63910675048828, 82.18984985351562, 82.15728759765625]
 ```
 
 ## Testing
@@ -77,4 +132,9 @@ To run tests for TextScope, use the following command:
 ```bash
 pytest -s tests/
 ```
+
+## Collaborate
+
+This is an under development project, **PR** are welcome and feel free to contact me at `marcosfernandez.pichel@usc.es`.
+
 
