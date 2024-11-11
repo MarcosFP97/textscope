@@ -4,25 +4,27 @@ from torch import Tensor
 import torch.nn.functional as F
 from nltk.tokenize import sent_tokenize
 from .config import SUBTHEMES
+import nltk
+nltk.download('punkt_tab')
 
 class SubthemeAnalyzer:
     def __init__(
         self
     )-> None:
         self.subthemes = SUBTHEMES
-        model_name = 'intfloat/multilingual-e5-large-instruct'
+        model_name = 'intfloat/multilingual-e5-small'
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.task = 'Given a topic, determine whether the text discusses the topic'
+        # self.task = 'Given a topic, determine whether the text discusses the topic'
 
-    def __get_detailed_instruct(
-        self,
-        task_description: str, 
-        query: str
-    ) -> str:
-        return f'Instruct: {task_description}\Topic: {query}'
+    # def __get_detailed_instruct(
+    #     self,
+    #     task_description: str, 
+    #     query: str
+    # ) -> str:
+    #     return f'Instruct: {task_description}\Topic: {query}'
     
     def __average_pool(
         self,
@@ -37,14 +39,16 @@ class SubthemeAnalyzer:
         theme:str,
         sent:str
     )-> float:
-        instruct = [
-            self.__get_detailed_instruct(self.task, theme),
-        ]
-        doc = [
-            sent
-        ]
-        input = instruct + doc
-        batch_dict = self.tokenizer(input, max_length=512, padding=True, truncation=True, return_tensors='pt')
+        # instruct = [
+        #     self.__get_detailed_instruct(self.task, theme),
+        # ]
+        # doc = [
+        #     sent
+        # ]
+        theme = 'query: '+theme
+        sent = 'passage: '+sent
+        input_texts = [theme, sent]
+        batch_dict = self.tokenizer(input_texts, max_length=512, padding=True, truncation=True, return_tensors='pt')
         batch_dict = {k: v.to(self.device) for k, v in batch_dict.items()}
         outputs = self.model(**batch_dict)
         embeddings = self.__average_pool(outputs.last_hidden_state, batch_dict['attention_mask'])
@@ -68,13 +72,17 @@ class SubthemeAnalyzer:
 
         sentences = sent_tokenize(text)
         subthemes_scores = []
+        logs = []
         for theme in subthemes:
             max_sim = 0.
+            max_sent = ""
             for sent in sentences:
                 sim = self.__main_analysis(theme, sent)
                 if sim > max_sim:
                     max_sim = sim
-
+                    max_sent = sent
+            log = f'Theme: {theme} Sentence: {max_sent} Sim: {max_sim}'
+            logs.append(log)
             subthemes_scores.append(max_sim)
 
         return subthemes_scores
