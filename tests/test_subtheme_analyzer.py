@@ -1,9 +1,9 @@
 import pytest
 from textscope.subtheme_analyzer import SubthemeAnalyzer
 
-# sample_text = 'Buenas, yo soy también enfermo.Como enfermo, conté primeramente con mi familia, la de verdad, la de puertas para adentro. El resto de la familia, parientes. Sin menospreciar su ayuda, su apoyo, su comprensión hacia esta enfermedad, vivo con mi pareja y mis chicos, así que entendíed (entendimos) que era un problema mío que afectaba a nuestro núcleo, así que  era un problema, primordialmente de los que vivimos detrás de esa puerta que pone 5º-A.'
 sample_text = 'Perdía el raciocinio apostando cantidades cada vez mayores para sentir estímulos más intensos. He mentido a mi familia.'
-# sample_text = 'Apostar en línea es más fácil que nunca, pero la falta de #Regulación adecuada está llevando a índices de #Ludopatía más altos, especialmente en jóvenes. Según la @FADJuventud el 20% de los jóvenes entre 14 y 18 años han apostado en línea.'
+sample_text_rel_small = 'El acceso a internet debe ser reconocido como un derecho humano básico en la era digital.'
+sample_text_rel_large = 'Los derechos digitales son fundamentales para garantizar que las personas puedan expresarse libremente y acceder a información en línea sin temor a censura. Además, es crucial proteger la privacidad de los datos personales frente a corporaciones y gobiernos, asegurando así la seguridad en la navegación y la comunicación digital.'
 
 @pytest.fixture
 def analyzer():
@@ -11,6 +11,11 @@ def analyzer():
 
 def test_analyze_sub(analyzer):
     puncts = analyzer.analyze(sample_text, "gambling")
+    print(f"Subthemes scores: {puncts}")
+    assert isinstance(puncts, list), "Results should be a list of scores"
+
+def test_analyze_sub_dr(analyzer):
+    puncts = analyzer.analyze(sample_text, "digital_rights")
     print(f"Subthemes scores: {puncts}")
     assert isinstance(puncts, list), "Results should be a list of scores"
 

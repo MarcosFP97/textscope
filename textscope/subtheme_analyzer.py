@@ -12,19 +12,19 @@ class SubthemeAnalyzer:
         self
     )-> None:
         self.subthemes = SUBTHEMES
-        model_name = 'intfloat/multilingual-e5-small'
+        model_name = 'intfloat/multilingual-e5-large-instruct'
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        # self.task = 'Given a topic, determine whether the text discusses the topic'
+        self.task = 'Given a topic, determine whether the text discusses the topic'
 
-    # def __get_detailed_instruct(
-    #     self,
-    #     task_description: str, 
-    #     query: str
-    # ) -> str:
-    #     return f'Instruct: {task_description}\Topic: {query}'
+    def __get_detailed_instruct(
+        self,
+        task_description: str, 
+        query: str
+    ) -> str:
+        return f'Instruct: {task_description}\Topic: {query}'
     
     def __average_pool(
         self,
@@ -39,15 +39,13 @@ class SubthemeAnalyzer:
         theme:str,
         sent:str
     )-> float:
-        # instruct = [
-        #     self.__get_detailed_instruct(self.task, theme),
-        # ]
-        # doc = [
-        #     sent
-        # ]
-        theme = 'query: '+theme
-        sent = 'passage: '+sent
-        input_texts = [theme, sent]
+        instruct = [
+             self.__get_detailed_instruct(self.task, theme),
+        ]
+        doc = [
+             sent
+        ]
+        input_texts = instruct+doc
         batch_dict = self.tokenizer(input_texts, max_length=512, padding=True, truncation=True, return_tensors='pt')
         batch_dict = {k: v.to(self.device) for k, v in batch_dict.items()}
         outputs = self.model(**batch_dict)
@@ -57,6 +55,9 @@ class SubthemeAnalyzer:
         scores = (embeddings[:1] @ embeddings[1:].T) * 100
         sim = scores.tolist()[0][0]
         return sim
+
+    def is_nested_subtheme(lst):
+        return any(isinstance(item, list) for item in lst)
 
     def analyze(
         self, 
@@ -73,17 +74,31 @@ class SubthemeAnalyzer:
         sentences = sent_tokenize(text)
         subthemes_scores = []
         logs = []
-        for theme in subthemes:
-            max_sim = 0.
-            max_sent = ""
-            for sent in sentences:
-                sim = self.__main_analysis(theme, sent)
-                if sim > max_sim:
-                    max_sim = sim
-                    max_sent = sent
-            log = f'Theme: {theme} Sentence: {max_sent} Sim: {max_sim}'
-            logs.append(log)
-            subthemes_scores.append(max_sim)
+        if is_nested_subtheme(subthemes):
+            for theme in subthemes:
+                max_sim = 0.
+                max_sent = ""
+                for kw in theme:
+                    for sent in sentences:
+                        sim = self.__main_analysis(kw, sent)
+                        if sim > max_sim:
+                            max_sim = sim
+                            max_sent = sent
+                log = f'Theme: {theme} Sentence: {max_sent} Sim: {max_sim}'
+                logs.append(log)
+                subthemes_scores.append(max_sim)
+        else:
+            for theme in subthemes:
+                max_sim = 0.
+                max_sent = ""
+                for sent in sentences:
+                    sim = self.__main_analysis(theme, sent)
+                    if sim > max_sim:
+                        max_sim = sim
+                        max_sent = sent
+                log = f'Theme: {theme} Sentence: {max_sent} Sim: {max_sim}'
+                logs.append(log)
+                subthemes_scores.append(max_sim)
 
         return subthemes_scores
     
@@ -102,17 +117,31 @@ class SubthemeAnalyzer:
         
         sentences = sent_tokenize(text)
         subtheme_pres = []
-        for theme in subthemes:
-            max_sim = 0.
-            for sent in sentences:
-                sim = self.__main_analysis(theme, sent)
-                if sim > max_sim:
-                    max_sim = sim
+        if is_nested_subtheme(subthemes):
+            for theme in subthemes:
+                max_sim = 0.
+                for kw in theme:
+                    for sent in sentences:
+                        sim = self.__main_analysis(kw, sent)
+                        if sim > max_sim:
+                            max_sim = sim
 
-            if max_sim > thr:
-                subtheme_pres.append(1)
-            else:
-                subtheme_pres.append(0)
+                if max_sim > thr:
+                    subtheme_pres.append(1)
+                else:
+                    subtheme_pres.append(0)
+        else:
+            for theme in subthemes:
+                max_sim = 0.
+                for sent in sentences:
+                    sim = self.__main_analysis(theme, sent)
+                    if sim > max_sim:
+                        max_sim = sim
+
+                if max_sim > thr:
+                    subtheme_pres.append(1)
+                else:
+                    subtheme_pres.append(0)
 
         return subtheme_pres
 
