@@ -15,12 +15,12 @@ def test_analyze_sub(analyzer):
     assert isinstance(puncts, list), "Results should be a list of scores"
 
 def test_analyze_sub_dr(analyzer):
-    puncts = analyzer.analyze(sample_text, "digital_rights")
+    puncts = analyzer.analyze(sample_text_rel_large, "digital_rights")
     print(f"Subthemes scores: {puncts}")
     assert isinstance(puncts, list), "Results should be a list of scores"
 
 def test_analyze_subpres(analyzer):
-    puncts = analyzer.analyze_bin(sample_text, "gambling")
+    puncts = analyzer.analyze_bin(sample_text_rel_large, "digital_rights")
     print(f"Subthemes presence: {puncts}")
     assert isinstance(puncts, list), "Result should be a list of binary values"
 
