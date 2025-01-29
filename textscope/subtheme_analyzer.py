@@ -17,7 +17,7 @@ class SubthemeAnalyzer:
         self.model = AutoModel.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.task = 'Given a topic, determine whether the text discusses the topic'
+        self.task = 'Given a set of words forming a topic, determine whether the text discusses the topic'
 
     def __get_detailed_instruct(
         self,
@@ -56,7 +56,10 @@ class SubthemeAnalyzer:
         sim = scores.tolist()[0][0]
         return sim
 
-    def is_nested_subtheme(lst):
+    def is_nested_subtheme(
+        self,
+        lst
+    ):
         return any(isinstance(item, list) for item in lst)
 
     def analyze(
@@ -74,7 +77,7 @@ class SubthemeAnalyzer:
         sentences = sent_tokenize(text)
         subthemes_scores = []
         logs = []
-        if is_nested_subtheme(subthemes):
+        if self.is_nested_subtheme(subthemes):
             for theme in subthemes:
                 max_sim = 0.
                 max_sent = ""
@@ -106,7 +109,7 @@ class SubthemeAnalyzer:
         self, 
         text:str,
         profile:str,
-        thr:float=86.
+        thr:float=85.
     )-> dict:
         if not text:
             return []
@@ -117,7 +120,7 @@ class SubthemeAnalyzer:
         
         sentences = sent_tokenize(text)
         subtheme_pres = []
-        if is_nested_subtheme(subthemes):
+        if self.is_nested_subtheme(subthemes):
             for theme in subthemes:
                 max_sim = 0.
                 for kw in theme:
