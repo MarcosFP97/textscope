@@ -3,6 +3,7 @@ PROFILES:
   digital_rights: ["protección de datos", "derechos digitales", "derecho al olvido", "datos sensibles", "supresión de datos", "derechos entorno digital", "educación digital", "ciberseguridad", "derecho anonimato", "igualdad internet", "menores internet", "brecha entorno digital", "derechos trabajadores internet", "derecho acceso a datos", "derecho inteligencia artificial", "neuroderechos"]
   mental_health:  ["depression", "anxiety", "bipolar disorder", "schizophrenia", "PTSD", "mental health", "psychotherapy"]
   climat: ["changement climatique", "environnement", "réchauffement climatique", "pollution", "durabilité", "énergies renouvelables", "conservation"]
+  cibersec: ["ciberseguridad", "criptografía", "cifrado de datos", "vulnerabilidades de seguridad", "normativas de ciberseguridad", "protección de datos", "auditorías de seguridad", "malware", "ransomware", "simulación de ciberataques", "seguridad en redes sociales", "ciberacoso", "delitos digitales", "privacidad y derechos digitales"]
 SUBTHEMES:
   gambling: ["¿Se ha encontrado a menudo pensando en el juego (por ejemplo, reviviendo experiencias de juego pasadas, planeando la próxima vez que jugar o pensando en formas de conseguir dinero para jugar)?", "¿Ha necesitado apostar cada vez más dinero para conseguir la cantidad de emoción que busca?", "¿Se ha vuelto inquieto o irritable al intentar reducir o dejar de jugar?", "¿Has jugado para escapar de los problemas o cuando te sientes se siente deprimido, ansioso o mal consigo mismo?", "Después de perder dinero apostando, ¿has vuelto otro día para para desquitarse?", "¿Ha mentido a su familia o a otras personas para ocultar el alcance de su ludopatía?", "¿Ha intentado repetidamente sin éxito controlar, reducir o dejar de jugar?", "¿Ha arriesgado o perdido una relación importante, un trabajo, una oportunidad educativa o profesional a causa del juego?", "¿Ha pedido ayuda a otras personas para que le proporcionen el dinero necesario para aliviar una situación financiera desesperada causada por el juego?"]
   digital_rights: [
@@ -18,6 +19,16 @@ SUBTHEMES:
     ["Tecnologías verdes", "Economía Circular Digital"],
     ["Derechos de autor", "Licencias abertas", "Cultura y Creatividad digital"],
     ["Metaverso", "Realidad Virtual", "Seguridad dispositivos conectados", "Regulación interacciones digitales"]
+  ]
+  cibersec: [
+    ["Incidentes de ciberseguridad", "Protección de infraestructuras críticas", "Vulnerabilidades y fallas en sistemas, aplicaciones y dispositivos", "Criptografía y cifrado de datos"],
+    ["Capacitación en ciberseguridad para empresas", "Formación para expertos en ciberseguridad"],
+    ["Normativas y estándares de ciberseguridad", "Reglamento General de Protección de Datos", "Auditorías de seguridad"],
+    ["Ciberseguridad en tecnologías emergentes: inteligencia artificial, blockchain, IoT, y 5G", "Investigación y desarrollo para anticiparse a amenazas: malware, ransomware y ataques dirigidos (APT)"],
+    ["Simulación de ciberataques: Red team/blue team.", "Planes de continuidad de negocio y estrategias para garantizar operaciones ante incidentes", "Gestión de riesgos cibernéticos"],
+    ["Redes y organizaciones internacionales: ENISA e INTERPOL", "Intercambio de información: Centros de Operaciones de Seguridad (SOC) y CSIRT"],
+    ["Protección infantil en internet: Seguridad en redes sociales", "Ciberacoso y delitos digitales","Educación ciudadanía en ciberseguridad y Campañas de sensibilización"],
+    ["Privacidad y derechos digitales", "Ética y ciberseguridad", "Responsabilidad social y entornos digitales seguros"]
   ]
   mental_health: ["Do you often feel sad or hopeless?", "Have you lost interest in activities you once enjoyed?", "Do you experience significant changes in your weight or appetite?", "Do you have trouble sleeping or sleeping too much?", "Do you feel fatigued or have a lack of energy?", "Do you have feelings of worthlessness or excessive guilt?", "Do you have difficulty concentrating or making decisions?", "Have you had thoughts of self-harm or suicide?"]
   climat: ["Les températures moyennes augmentent-elles dans votre région?", "Y a-t-il une augmentation des phénomènes météorologiques extrêmes?", "Observez-vous une hausse du niveau de la mer?", "Les glaciers et les calottes glaciaires fondent-ils plus rapidement?", "Y a-t-il des changements dans les cycles de précipitations?", "Les espèces animales et végétales migrent-elles ou disparaissent-elles?", "Les océans deviennent-ils plus acides?", "La fréquence des feux de forêt augmente-t-elle?"]
