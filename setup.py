@@ -12,10 +12,12 @@ setup(
         "torch",
         "transformers",
         "numpy",
-        "pytest",
         "pyyaml",
         "nltk"
     ],
+    extras_require={
+        "test": ["pytest"],
+    },
     license="GNU",  # o la que uses
     license_files=["LICENSE"],
     include_package_data=True,
@@ -23,4 +25,3 @@ setup(
     author="Marcos Fernández-Pichel",
     author_email="marcosfernandez.pichel@usc.es",
 )
-
