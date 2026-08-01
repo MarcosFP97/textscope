@@ -1,150 +1,139 @@
+from typing import Optional, Union
+
 import torch
-from transformers import AutoTokenizer, AutoModel
 from torch import Tensor
-import torch.nn.functional as F
 from nltk.tokenize import sent_tokenize
+
 from .config import SUBTHEMES
-import nltk
-nltk.download('punkt_tab')
+from .e5_backend import (
+    DEFAULT_E5_BATCH_SIZE,
+    DEFAULT_E5_MODEL_NAME,
+    DEFAULT_E5_MODEL_REVISION,
+    E5Backend,
+    get_e5_backend,
+)
+
 
 class SubthemeAnalyzer:
     def __init__(
-        self
-    )-> None:
+        self,
+        backend: Optional[E5Backend] = None,
+        model_name: str = DEFAULT_E5_MODEL_NAME,
+        revision: str = DEFAULT_E5_MODEL_REVISION,
+        device: Optional[Union[str, torch.device]] = None,
+        batch_size: int = DEFAULT_E5_BATCH_SIZE,
+    ) -> None:
+        if batch_size <= 0:
+            raise ValueError("batch_size must be greater than zero")
         self.subthemes = SUBTHEMES
-        model_name = 'intfloat/multilingual-e5-large-instruct'
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device)
+        self.backend = backend or get_e5_backend(
+            model_name=model_name,
+            revision=revision,
+            device=device,
+        )
+        # Keep the original public attributes for callers that inspect them.
+        self.tokenizer = self.backend.tokenizer
+        self.model = self.backend.model
+        self.device = self.backend.device
+        self.batch_size = batch_size
         self.task = 'Given a set of words forming a topic, determine whether the text discusses the topic'
+        # Cache for keyword embeddings and index mappings per profile
+        self._kw_cache = {}
 
-    def __get_detailed_instruct(
-        self,
-        task_description: str, 
-        query: str
-    ) -> str:
-        return f'Instruct: {task_description}\Topic: {query}'
-    
-    def __average_pool(
-        self,
-        last_hidden_states: Tensor,
-        attention_mask: Tensor
-    ) -> Tensor:
-        last_hidden = last_hidden_states.masked_fill(~attention_mask[..., None].bool(), 0.0)
-        return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
+    def _get_backend(self) -> E5Backend:
+        backend = getattr(self, "backend", None)
+        if backend is None:
+            # Compatibility with subclasses written against pre-backend versions.
+            backend = E5Backend.from_components(
+                tokenizer=self.tokenizer,
+                model=self.model,
+                device=self.device,
+                model_name=getattr(self.model, "name_or_path", "preloaded"),
+            )
+            self.backend = backend
+        return backend
 
-    def __main_analysis(
-        self,
-        theme:str,
-        sent:str
-    )-> float:
-        instruct = [
-             self.__get_detailed_instruct(self.task, theme),
-        ]
-        doc = [
-             sent
-        ]
-        input_texts = instruct+doc
-        batch_dict = self.tokenizer(input_texts, max_length=512, padding=True, truncation=True, return_tensors='pt')
-        batch_dict = {k: v.to(self.device) for k, v in batch_dict.items()}
-        outputs = self.model(**batch_dict)
-        embeddings = self.__average_pool(outputs.last_hidden_state, batch_dict['attention_mask'])
-        # normalize embeddings
-        embeddings = F.normalize(embeddings, p=2, dim=1)
-        scores = (embeddings[:1] @ embeddings[1:].T) * 100
-        sim = scores.tolist()[0][0]
-        return sim
+    def _get_detailed_instruct(self, task_description: str, query: str) -> str:
+        return f'Instruct: {task_description}\nQuery: {query}'
 
-    def is_nested_subtheme(
-        self,
-        lst
-    ):
-        return any(isinstance(item, list) for item in lst)
+    def _average_pool(self, last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
+        return self._get_backend()._average_pool(last_hidden_states, attention_mask)
 
-    def analyze(
-        self, 
-        text:str,
-        profile:str
-    )-> list:
+    def _embed_batch(self, texts: list, batch_size: int = DEFAULT_E5_BATCH_SIZE) -> Tensor:
+        """Embed a list of texts in batches, returning normalized embeddings."""
+        return self._get_backend().embed(texts, batch_size=batch_size)
+
+    def _get_kw_cache(self, profile: str):
+        """Get or compute cached keyword embeddings and index mapping for a profile."""
+        if profile in self._kw_cache:
+            return self._kw_cache[profile]
+
+        subthemes = self.subthemes[profile]
+        keyword_texts = []
+        subtheme_indices = {}
+        is_nested = any(isinstance(item, list) for item in subthemes)
+
+        if is_nested:
+            for idx, theme in enumerate(subthemes):
+                start = len(keyword_texts)
+                for kw in theme:
+                    keyword_texts.append(self._get_detailed_instruct(self.task, kw))
+                subtheme_indices[idx] = list(range(start, len(keyword_texts)))
+        else:
+            for idx, theme in enumerate(subthemes):
+                keyword_texts.append(self._get_detailed_instruct(self.task, theme))
+                subtheme_indices[idx] = [len(keyword_texts) - 1]
+
+        kw_embeddings = self._embed_batch(
+            keyword_texts,
+            batch_size=getattr(self, "batch_size", DEFAULT_E5_BATCH_SIZE),
+        )
+        self._kw_cache[profile] = (kw_embeddings, subtheme_indices)
+        return kw_embeddings, subtheme_indices
+
+    def _analyze_common(self, text: str, profile: str):
+        """Shared logic for analyze and analyze_bin."""
+        if profile not in self.subthemes:
+            raise ValueError(f"Profile '{profile}' not found in the subthemes configuration.")
+        n_subthemes = len(self.subthemes[profile])
+
+        try:
+            sentences = sent_tokenize(text, language='spanish')
+        except LookupError as exc:
+            raise RuntimeError(
+                "NLTK sentence tokenizer data is missing. Install it once with "
+                "`python -m nltk.downloader punkt_tab`."
+            ) from exc
+        if not sentences:
+            return None, n_subthemes
+
+        kw_embeddings, subtheme_indices = self._get_kw_cache(profile)
+        max_sims = [float("-inf")] * n_subthemes
+        backend = self._get_backend()
+        for sent_embeddings in backend.iter_embeddings(
+            sentences,
+            batch_size=getattr(self, "batch_size", DEFAULT_E5_BATCH_SIZE),
+        ):
+            sim_matrix = (kw_embeddings @ sent_embeddings.T) * 100
+            for idx in range(n_subthemes):
+                kw_idx = subtheme_indices[idx]
+                batch_max = sim_matrix[kw_idx].max().item()
+                max_sims[idx] = max(max_sims[idx], batch_max)
+
+        return max_sims, n_subthemes
+
+    def analyze(self, text: str, profile: str) -> list:
         if not text:
             return []
+        result = self._analyze_common(text, profile)
+        if result[0] is None:
+            return [0.0] * result[1]
+        return result[0]
 
-        if profile not in SUBTHEMES:
-            raise ValueError(f"Profile '{profile}' not found in the subthemes configuration.")
-        subthemes = SUBTHEMES[profile]
-
-        sentences = sent_tokenize(text)
-        subthemes_scores = []
-        logs = []
-        if self.is_nested_subtheme(subthemes):
-            for theme in subthemes:
-                max_sim = 0.
-                max_sent = ""
-                for kw in theme:
-                    for sent in sentences:
-                        sim = self.__main_analysis(kw, sent)
-                        if sim > max_sim:
-                            max_sim = sim
-                            max_sent = sent
-                log = f'Theme: {theme} Sentence: {max_sent} Sim: {max_sim}'
-                logs.append(log)
-                subthemes_scores.append(max_sim)
-        else:
-            for theme in subthemes:
-                max_sim = 0.
-                max_sent = ""
-                for sent in sentences:
-                    sim = self.__main_analysis(theme, sent)
-                    if sim > max_sim:
-                        max_sim = sim
-                        max_sent = sent
-                log = f'Theme: {theme} Sentence: {max_sent} Sim: {max_sim}'
-                logs.append(log)
-                subthemes_scores.append(max_sim)
-
-        return subthemes_scores
-    
-    def analyze_bin(
-        self, 
-        text:str,
-        profile:str,
-        thr:float=85.
-    )-> dict:
+    def analyze_bin(self, text: str, profile: str, thr: float = 85.) -> list:
         if not text:
             return []
-
-        if profile not in SUBTHEMES:
-            raise ValueError(f"Profile '{profile}' not found in the subthemes configuration.")
-        subthemes = SUBTHEMES[profile]
-        
-        sentences = sent_tokenize(text)
-        subtheme_pres = []
-        if self.is_nested_subtheme(subthemes):
-            for theme in subthemes:
-                max_sim = 0.
-                for kw in theme:
-                    for sent in sentences:
-                        sim = self.__main_analysis(kw, sent)
-                        if sim > max_sim:
-                            max_sim = sim
-
-                if max_sim > thr:
-                    subtheme_pres.append(1)
-                else:
-                    subtheme_pres.append(0)
-        else:
-            for theme in subthemes:
-                max_sim = 0.
-                for sent in sentences:
-                    sim = self.__main_analysis(theme, sent)
-                    if sim > max_sim:
-                        max_sim = sim
-
-                if max_sim > thr:
-                    subtheme_pres.append(1)
-                else:
-                    subtheme_pres.append(0)
-
-        return subtheme_pres
-
+        result = self._analyze_common(text, profile)
+        if result[0] is None:
+            return [0] * result[1]
+        return [1 if s > thr else 0 for s in result[0]]
