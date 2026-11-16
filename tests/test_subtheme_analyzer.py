@@ -1,7 +1,7 @@
 import pytest
 from textscope.subtheme_analyzer import SubthemeAnalyzer
 
-sample_text = 'Perdía el raciocinio apostando cantidades cada vez mayores para sentir estímulos más intensos. He mentido a mi familia.'
+sample_text = 'A prevención da violencia de xénero require detectar situacións de control, maltrato psicolóxico e agresións dentro da parella. A protección das vítimas e a educación en igualdade son fundamentais para combater a violencia machista.'
 sample_text_rel_small = 'El acceso a internet debe ser reconocido como un derecho humano básico en la era digital.'
 sample_text_rel_large = 'Los derechos digitales son fundamentales para garantizar que las personas puedan expresarse libremente y acceder a información en línea sin temor a censura. Además, es crucial proteger la privacidad de los datos personales frente a corporaciones y gobiernos, asegurando así la seguridad en la navegación y la comunicación digital.'
 
@@ -10,7 +10,7 @@ def analyzer():
     return SubthemeAnalyzer()
 
 def test_analyze_sub(analyzer):
-    puncts = analyzer.analyze(sample_text, "gambling")
+    puncts = analyzer.analyze(sample_text, "violencia_genero_gal")
     print(f"Subthemes scores: {puncts}")
     assert isinstance(puncts, list), "Results should be a list of scores"
 
